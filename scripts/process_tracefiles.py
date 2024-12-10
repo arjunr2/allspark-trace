@@ -15,7 +15,9 @@ def main():
     args = parse_args()
     # Each 8-byte entry is packed as:
     # <3 byte target pc> <3 byte source pc> <2 byte function index> 
+    timestamp_struct = struct.Struct('<Q')
     brentry_struct = struct.Struct('<Q')
+
     field_splits = [3, 3, 2]
     field_split_idxs = [
         sum(field_splits[:i]) for i in range(len([0] + field_splits))
@@ -25,8 +27,11 @@ def main():
         data = f.read()
 
     cf_table = {}
-    num_entries = 0
-    for entry, in brentry_struct.iter_unpack(data):
+    num_entries = 0    
+
+    timestamp, = timestamp_struct.unpack(data[:timestamp_struct.size])
+
+    for entry, in brentry_struct.iter_unpack(data[timestamp_struct.size:]):
         eb = entry.to_bytes(8, byteorder='little')
         target_pc, source_pc, func_idx = [
             int.from_bytes(
@@ -49,6 +54,8 @@ def main():
 
     if args.verbose:
         print(json.dumps(cf_table, indent=2))
+
+    print(f"Timestamp: {timestamp // 1_000_000_000} s | {(timestamp % 1_000_000_000) // 1_000_000} ms")
     print(f"Total dynamic entries: {num_entries}")
     num_branch_sites = 0
     target_types = {k: 0 for k in ["uncond", "cond", "table"]}

@@ -10,6 +10,7 @@ use log::info;
 use once_cell::sync::Lazy;
 
 use libc::c_void;
+use nix::time;
 use std::error::Error;
 use std::fs::File;
 use std::io::{BufWriter, Write};
@@ -37,6 +38,7 @@ static mut TMPFILE_WR: Lazy<BufWriter<File>> =
     Lazy::new(|| BufWriter::new(File::create(&*TMP_FILEPATH).unwrap()));
 
 static mut TRACE_DATA: &[u8] = &[];
+static mut TIMESTAMP: u64 = 0;
 
 /// Command-Line Arguments
 #[derive(Parser, Debug)]
@@ -77,6 +79,8 @@ fn wasm_prog_tracedump(exec_env: wasm_exec_env_t, ctrlflow_buf_addr: u32, buf_si
             wasm_runtime_addr_app_to_native(module, ctrlflow_buf_addr as u64);
         TRACE_DATA = slice::from_raw_parts(buf_addr as *const u8, buf_size as usize)
     };
+    let timestamp = time::clock_gettime(time::ClockId::CLOCK_MONOTONIC).unwrap();
+    unsafe { TIMESTAMP = timestamp.tv_sec() as u64 * 1_000_000_000 + timestamp.tv_nsec() as u64 };
 }
 
 /// Entrypoint for trace
@@ -106,10 +110,12 @@ fn main() -> Result<(), Box<dyn Error>> {
     //    TMPFILE_WR.flush()?;
     //}
     let mut tracefile = File::create(&cli.outfile)?;
+    let timestamp_slice = unsafe { TIMESTAMP.to_le_bytes() };
+    tracefile.write_all(&timestamp_slice)?;
     tracefile.write_all(unsafe { TRACE_DATA })?;
     info!(
         "Written trace of size {} to file: {}",
-        unsafe { TRACE_DATA.len().clone() },
+        timestamp_slice.len() + unsafe { TRACE_DATA.len() },
         cli.outfile
     );
 
