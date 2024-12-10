@@ -12,14 +12,11 @@ use once_cell::sync::Lazy;
 use libc::c_void;
 use std::error::Error;
 use std::fs::File;
-use std::io::{BufReader, BufWriter, Write};
+use std::io::{BufWriter, Write};
 use std::path::{Path, PathBuf};
 use std::slice;
 use uuid::Uuid;
 
-use serde::{Deserialize, Serialize};
-use serde_pickle::de as picklede;
-use serde_pickle::ser as pickleser;
 use tempfile::env;
 
 use wamr_rust_sdk::{instance::Instance, module::Module, runtime::Runtime};
@@ -38,8 +35,6 @@ static TMP_FILEPATH: Lazy<PathBuf> = Lazy::new(|| {
 
 static mut TMPFILE_WR: Lazy<BufWriter<File>> =
     Lazy::new(|| BufWriter::new(File::create(&*TMP_FILEPATH).unwrap()));
-/// Number of operations logged into temporary file
-static mut NUM_OPS: u64 = 0;
 
 static mut TRACE_DATA: &[u8] = &[];
 
@@ -96,7 +91,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let runtime = Runtime::builder()
         .use_system_allocator()
-        .set_host_function_module_name("allspark-trace")
+        .set_host_function_module_name("allspark:trace")
         .register_host_function("prog_tracedump", wasm_prog_tracedump as *mut c_void)
         .set_max_thread_num(100)
         .build()?;
@@ -114,7 +109,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     tracefile.write_all(unsafe { TRACE_DATA })?;
     info!(
         "Written trace of size {} to file: {}",
-        unsafe { TRACE_DATA.len() },
+        unsafe { TRACE_DATA.len().clone() },
         cli.outfile
     );
 
