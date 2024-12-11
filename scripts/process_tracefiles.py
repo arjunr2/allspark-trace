@@ -55,7 +55,7 @@ def main():
     if args.verbose:
         print(json.dumps(cf_table, indent=2))
 
-    print(f"Timestamp: {timestamp // 1_000_000_000} s | {(timestamp % 1_000_000_000) // 1_000_000} ms")
+    print(f"Timestamp: {timestamp // 1_000_000} s | {(timestamp % 1_000_000) // 1_000} ms")
     print(f"Total dynamic entries: {num_entries}")
     num_branch_sites = 0
     target_types = {k: 0 for k in ["uncond", "cond", "table"]}

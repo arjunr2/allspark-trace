@@ -68,10 +68,7 @@ impl CLI {
 
 /// Wasm function to dump trace
 ///
-/// Scope ID is used to identify the scope which is being traced
-/// opcount_buf_addr is a pointer to buffer containing opcode distribution
-/// buf_size is the size of the buffer
-/// Get the timestamp for this block too
+/// Timestamp the block (in microseconds)
 fn wasm_prog_tracedump(exec_env: wasm_exec_env_t, ctrlflow_buf_addr: u32, buf_size: u32) {
     unsafe {
         let module = wasm_runtime_get_module_inst(exec_env);
@@ -79,8 +76,8 @@ fn wasm_prog_tracedump(exec_env: wasm_exec_env_t, ctrlflow_buf_addr: u32, buf_si
             wasm_runtime_addr_app_to_native(module, ctrlflow_buf_addr as u64);
         TRACE_DATA = slice::from_raw_parts(buf_addr as *const u8, buf_size as usize)
     };
-    let timestamp = time::clock_gettime(time::ClockId::CLOCK_MONOTONIC).unwrap();
-    unsafe { TIMESTAMP = timestamp.tv_sec() as u64 * 1_000_000_000 + timestamp.tv_nsec() as u64 };
+    let timestamp = time::clock_gettime(time::ClockId::CLOCK_REALTIME).unwrap();
+    unsafe { TIMESTAMP = timestamp.tv_sec() as u64 * 1_000_000 + timestamp.tv_nsec() as u64 / 1_000 };
 }
 
 /// Entrypoint for trace
