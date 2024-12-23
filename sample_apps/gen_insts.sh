@@ -6,4 +6,5 @@ for f in orig/*.wasm; do
   echo "Generating instrument binary for $f"
   ../wasm-instrument/instrument --scheme allspark-trace -o inst/$x.inst.wasm $f
   wasm2wat --enable-threads inst/$x.inst.wasm -o inst/$x.inst.wat
+  ../wasm-instrument/inspect --scheme allspark-trace-blocks -o inst/$x-layout.json $f
 done
